@@ -6,15 +6,15 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/quasiMonolitic NAME=quasiMonolitic PETSC_FILE=petscOptions.lu DT=0.1"
-    "BASE=base/partitioned NAME=partitioned DT=0.1"
+    "BASE=base/quasiMonolitic NAME=quasiMonolitic"
+    #"BASE=base/partitioned NAME=partitioned"
 )
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 4
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=3
+END_MESH=4
 
 
 # Detect the CPU type: we append this to the case name
@@ -45,7 +45,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset DT PETSC_FILE NAME
+    unset NAME
 
     # Parse the configuration string
     eval $config
@@ -101,13 +101,16 @@ do
             cd 0/fluid/ && ln -sf inlet.parabolic velocityInletProfile && cd ../..
         fi
 
-        # Update time-step
-        sed -i "/^\s*deltaT /s|^.*|deltaT ${DT};|"  system/controlDict
+        # Set DT as a function of the mesh
+        # i=1 => DT=10
+        # i=2 => DT=5
+        # i=3 => DT=2.5
+        # ...
+        #DT=$(echo "scale=5; 10/(2^($i - 1))" | bc -l)
 
-        # Update the PETSc options file
-        if [ -n "${PETSC_FILE}" ]; then
-            sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/fsiProperties
-        fi
+        # Update time-step
+        #echo "Setting deltaT = ${DT}"
+        #sed -i "/^\s*deltaT /s|^.*|deltaT ${DT};|"  system/controlDict
 
         # Run the solver
         if [[ "$1" == "parallel" ]]; then
@@ -168,7 +171,7 @@ do
         echo "$i $CELLS_FLUID $CELLS_SOLID $DT $CLOCK_TIME $MAX_MEMORY $DY " >> ../"${SUMMARY}"
 
         # Print summary file
-        echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+        echo; echo "${SUMMARY} file:"; cat ../"${SUMMARY}"; echo
 
         cd ..
     done

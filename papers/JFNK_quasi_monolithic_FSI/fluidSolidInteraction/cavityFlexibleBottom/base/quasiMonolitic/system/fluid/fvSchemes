@@ -24,9 +24,7 @@ d2dt2Schemes
 
 ddtSchemes
 {
-    default            none;
-    ddt(U)             Euler;
-    ddt(p)             Euler;
+    default            steadyState;
     ddt(D)             steadyState;
     d2dt2(D)           steadyState;
 }

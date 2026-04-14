@@ -1,6 +1,6 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | solids4foam: solid mechanics and fluid-solid interaction simulations        |
-| Version:     v2.0                                                           |
+| Version:     v2.3                                                           |
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
@@ -20,13 +20,21 @@ solidModel    nonLinearGeometryTotalLagrangianVelocity;
 
 nonLinearGeometryTotalLagrangianVelocityCoeffs
 {
-    linearElasticFormulation yes;
-
-    dampingCoeff [0 0 -1 0 0 0 0] 1e-1;
+    dampingCoeff [0 0 -1 0 0 0 0] 0.2;
 
     stabilisation
     {
-        scaleFactor 0.1;
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
+
+        pressure
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
     }
 }
 
