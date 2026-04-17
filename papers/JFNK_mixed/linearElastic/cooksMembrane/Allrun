@@ -4,6 +4,13 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+PLOT_DIR="${SCRIPT_DIR}/plotscripts"
+MESH_SPACING_FILE="${PLOT_DIR}/meshSpacing.csv"
+BENCHMARK_FILE="${PLOT_DIR}/Bijelona.csv"
+
+cd "${SCRIPT_DIR}" || exit 1
+
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/hex.snes NAME=hex_snes__rhiechow   SOLIDPROPS_TAG=rhiechow   PETSC_FILE=petscOptions.split"
@@ -13,23 +20,144 @@ configs=(
     "BASE=base/hex.snes NAME=hex_snes__evenlap_m1 SOLIDPROPS_TAG=evenlap_m1 PETSC_FILE=petscOptions.split"
 )
 
+configTags=(rhiechow laplacian jst evenlap_m0 evenlap_m1)
+
 # Define start and end mesh indices
-# Mesh input files are defined from 1 to 8
-START_MESH=1
-END_MESH=6
+# Override on the command line, e.g. END_MESH=7 ./Allrun
+START_MESH=${START_MESH:-1}
+END_MESH=${END_MESH:-7}
+
+
+meshCellsPerSide()
+{
+    case "$1" in
+        1) echo 3 ;;
+        2) echo 6 ;;
+        3) echo 12 ;;
+        4) echo 24 ;;
+        5) echo 48 ;;
+        6) echo 96 ;;
+        7) echo 192 ;;
+        *)
+            echo "NaN"
+            ;;
+    esac
+}
+
+
+detailField()
+{
+    local file="$1"
+    local wantedMesh="$2"
+    local fieldName="$3"
+
+    case "${fieldName}" in
+        cellsPerSide)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $2; exit}' "$file"
+            ;;
+        cells)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $3; exit}' "$file"
+            ;;
+        executionTime)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $4; exit}' "$file"
+            ;;
+        clockTime)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $5; exit}' "$file"
+            ;;
+        mem)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $6; exit}' "$file"
+            ;;
+        dy)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $7; exit}' "$file"
+            ;;
+        dyScaled)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $8; exit}' "$file"
+            ;;
+        snesIterations)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $9; exit}' "$file"
+            ;;
+        avgLinearIterations)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $10; exit}' "$file"
+            ;;
+        linearSolves)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $11; exit}' "$file"
+            ;;
+        status)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $12; exit}' "$file"
+            ;;
+        exitCode)
+            awk -F'\t' -v wantedMesh="$wantedMesh" 'NR == 1 {next} $1 == wantedMesh {print $13; exit}' "$file"
+            ;;
+    esac
+}
+
+
+numericDifference()
+{
+    local lhs="$1"
+    local rhs="$2"
+
+    awk -v lhsValue="$lhs" -v rhsValue="$rhs" 'BEGIN { if (lhsValue == "" || rhsValue == "" || lhsValue == "NaN" || rhsValue == "NaN") print "NaN"; else printf "%.12g", rhsValue - lhsValue }'
+}
+
+
+initialiseWideTable()
+{
+    local file="$1"
+    local xHeader="$2"
+
+    printf "%s" "${xHeader}" > "${file}"
+    for tag in "${configTags[@]}"
+    do
+        printf "\t%s" "${tag}" >> "${file}"
+    done
+    printf "\n" >> "${file}"
+}
+
+
+appendWideTableRow()
+{
+    local file="$1"
+    local xValue="$2"
+    local mesh="$3"
+    local metricName="$4"
+
+    printf "%s" "${xValue}" >> "${file}"
+
+    for tag in "${configTags[@]}"
+    do
+        local detailsFile="hex_snes__${tag}.details.tsv"
+        local value
+        value=$(detailField "${detailsFile}" "${mesh}" "${metricName}")
+
+        if [[ -z "${value}" ]]
+        then
+            value="NaN"
+        fi
+
+        printf "\t%s" "${value}" >> "${file}"
+    done
+
+    printf "\n" >> "${file}"
+}
 
 
 # Detect the CPU type: we append this to the case name
 if [[ "$OSTYPE" == "darwin"* ]]
 then
     # macOS
-    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string 2>/dev/null | sed 's/[^a-zA-Z0-9]/_/g')
 elif [[ -f /proc/cpuinfo ]]
 then
     # Linux
     CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
 else
     # Fallback if neither method works
+    CPU_TYPE="Unknown_CPU"
+fi
+
+if [[ -z "${CPU_TYPE}" ]]
+then
     CPU_TYPE="Unknown_CPU"
 fi
 
@@ -41,11 +169,11 @@ echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
 
 # Enter the run directory
-cd "${RUN_DIR}"
+cd "${RUN_DIR}" || exit 1
 
 # Combined results file
 RESULTS_TABLE="stabilisationResults.tsv"
-echo -e "# Config\tMesh\tCells\tTime\tMem\tD\tStatus\tExitCode" > "${RESULTS_TABLE}"
+echo -e "# Config\tMesh\tCellsPerSide\tCells\tExecutionTime\tClockTime\tMem\tDy\tDyScaled\tSNESIterations\tAvgLinearIterations\tLinearSolves\tStatus\tExitCode" > "${RESULTS_TABLE}"
 
 # Iterate through configurations
 for config in "${configs[@]}"
@@ -60,7 +188,7 @@ do
     SUMMARY="${NAME}.summary.txt"
     DETAILS="${NAME}.details.tsv"
     echo "# Mesh Time Mem D" > "${SUMMARY}"
-    echo -e "# Mesh\tCells\tTime\tMem\tD\tStatus\tExitCode" > "${DETAILS}"
+    echo -e "# Mesh\tCellsPerSide\tCells\tExecutionTime\tClockTime\tMem\tDy\tDyScaled\tSNESIterations\tAvgLinearIterations\tLinearSolves\tStatus\tExitCode" > "${DETAILS}"
 
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
@@ -68,23 +196,36 @@ do
         CASE="${NAME}.$i"
         echo; echo "Processing case: $CASE"
 
+        CELLS_PER_SIDE=$(meshCellsPerSide "$i")
+        if [[ -z "${CELLS_PER_SIDE}" ]]
+        then
+            CELLS_PER_SIDE="NaN"
+        fi
+
         # Prepare the case
         cp -r "../${BASE}" "${CASE}"
-        cd "$CASE"
+        cd "$CASE" || exit 1
 
         STATUS="OK"
         EXIT_CODE=0
         MAX_MEMORY="NaN"
+        EXECUTION_TIME="NaN"
         CLOCK_TIME="NaN"
         DISP="NaN"
+        DISP_SCALED="NaN"
+        SNES_ITERS="NaN"
+        AVG_LINEAR_ITERS="NaN"
+        LINEAR_SOLVES=0
         NCELLS="NaN"
 
         # Selecting stabilisation method i.e. Rhie-Chow, laplacian, JST,
         # even-order laplacian
-        if [[ -n "${SOLIDPROPS_TAG:-}" ]]; then
+        if [[ -n "${SOLIDPROPS_TAG:-}" ]]
+        then
             SOLIDPROPS_FILE="constant/solidProperties.${SOLIDPROPS_TAG}"
 
-            if [[ ! -f "$SOLIDPROPS_FILE" ]]; then
+            if [[ ! -f "$SOLIDPROPS_FILE" ]]
+            then
                 echo "ERROR: missing $SOLIDPROPS_FILE in $(pwd)"
                 exit 1
             fi
@@ -108,12 +249,14 @@ do
         solids4Foam::runApplication blockMesh
         BLOCKMESH_EXIT=$?
 
-        if [[ -f log.blockMesh ]]; then
+        if [[ -f log.blockMesh ]]
+        then
             NCELLS=$(grep "nCells:" log.blockMesh | awk '{print $2}' | tail -n 1)
         fi
 
         # Update the PETSc options file
-        if [ -n "${PETSC_FILE}" ]; then
+        if [[ -n "${PETSC_FILE}" ]]
+        then
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
 
@@ -134,30 +277,35 @@ do
                 EXIT_CODE=$?
             else
                 echo "Running solids4Foam on ${CASE}"
-                # Strange PETSc issue on Macbook where I need to use mpirun for serial
-                #solids4Foam::runApplication solids4Foam
-                #mpirun -np 1 solids4Foam &> log.solids4Foam
                 solids4Foam &> log.solids4Foam
                 EXIT_CODE=$?
             fi
 
             # Extract results from solver log and append them to a summary file
             echo; echo "Appending results to ${SUMMARY}"
-            if grep -q "Maximum resident" log.solids4Foam; then
+            if grep -q "Maximum resident" log.solids4Foam
+            then
                 MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
-            elif grep -q "maximum resident set size" log.solids4Foam; then
+            elif grep -q "maximum resident set size" log.solids4Foam
+            then
                 MAX_MEMORY=$(grep "maximum resident set size" log.solids4Foam | awk '{print int($1 / 1000)}')
             else
                 MAX_MEMORY="NaN"
             fi
 
-            # Record the time
-            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
+            EXECUTION_TIME=$(awk '/ExecutionTime =/ {value = $3} END {if (value != "") print value; else print "NaN"}' log.solids4Foam)
+            CLOCK_TIME=$(awk '/ExecutionTime =/ {value = $7} END {if (value != "") print value; else print "NaN"}' log.solids4Foam)
+            SNES_ITERS=$(awk '/Nonlinear solve converged/ {value = $NF} END {if (value != "") print value; else print "NaN"}' log.solids4Foam)
+            LINEAR_SOLVES=$(awk '/Linear solve converged/ {count++} END {print count + 0}' log.solids4Foam)
+            AVG_LINEAR_ITERS=$(awk '/Linear solve converged/ {sum += $NF; count++} END {if (count > 0) printf "%.12g", sum/count; else print "NaN"}' log.solids4Foam)
 
             # Extract the reference point vertical displacement
-            if [[ -f postProcessing/0/solidPointDisplacement_pointDisp.dat ]]; then
+            if [[ -f postProcessing/0/solidPointDisplacement_pointDisp.dat ]]
+            then
                 DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
             fi
+
+            DISP_SCALED=$(awk -v d="$DISP" 'BEGIN {if (d == "" || d == "NaN") print "NaN"; else printf "%.12g", d*0.001}')
 
             if [[ ${EXIT_CODE} -ne 0 ]]
             then
@@ -173,83 +321,98 @@ do
 
         # Write data to files
         echo "$i $CLOCK_TIME $MAX_MEMORY $DISP" >> ../"${SUMMARY}"
-        echo -e "${i}\t${NCELLS}\t${CLOCK_TIME}\t${MAX_MEMORY}\t${DISP}\t${STATUS}\t${EXIT_CODE}" >> ../"${DETAILS}"
-        echo -e "${SOLIDPROPS_TAG}\t${i}\t${NCELLS}\t${CLOCK_TIME}\t${MAX_MEMORY}\t${DISP}\t${STATUS}\t${EXIT_CODE}" >> ../"${RESULTS_TABLE}"
+        echo -e "${i}\t${CELLS_PER_SIDE}\t${NCELLS}\t${EXECUTION_TIME}\t${CLOCK_TIME}\t${MAX_MEMORY}\t${DISP}\t${DISP_SCALED}\t${SNES_ITERS}\t${AVG_LINEAR_ITERS}\t${LINEAR_SOLVES}\t${STATUS}\t${EXIT_CODE}" >> ../"${DETAILS}"
+        echo -e "${SOLIDPROPS_TAG}\t${i}\t${CELLS_PER_SIDE}\t${NCELLS}\t${EXECUTION_TIME}\t${CLOCK_TIME}\t${MAX_MEMORY}\t${DISP}\t${DISP_SCALED}\t${SNES_ITERS}\t${AVG_LINEAR_ITERS}\t${LINEAR_SOLVES}\t${STATUS}\t${EXIT_CODE}" >> ../"${RESULTS_TABLE}"
 
-        cd ..
+        cd .. || exit 1
     done
 
     # Print summary file
     echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
 done
 
-# Create wide tables for plotting
-echo -e "cells\trhiechow\tlaplacian\tjst\tevenlap_m0\tevenlap_m1" > tipDispVsCells.dat
-echo -e "cells\trhiechow\tlaplacian\tjst\tevenlap_m0\tevenlap_m1" > clockTimeVsCells.dat
-echo -e "cells\trhiechow\tlaplacian\tjst\tevenlap_m0\tevenlap_m1" > maxMemoryVsCells.dat
+# Create wide tables for plotting and quick comparisons
+initialiseWideTable tipDispVsCells.dat "cells"
+initialiseWideTable tipDispScaledVsCellsPerSide.dat "cellsPerSide"
+initialiseWideTable clockTimeVsCells.dat "cells"
+initialiseWideTable executionTimeVsCells.dat "cells"
+initialiseWideTable maxMemoryVsCells.dat "cells"
+initialiseWideTable snesIterationsVsCells.dat "cells"
+initialiseWideTable avgLinearIterationsVsCells.dat "cells"
 
 for i in `seq $START_MESH $END_MESH`
 do
-    NCELLS=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $2; exit}' hex_snes__laplacian.details.tsv)
-    RHIE_D=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $5; exit}' hex_snes__rhiechow.details.tsv)
-    LAP_D=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $5; exit}' hex_snes__laplacian.details.tsv)
-    JST_D=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $5; exit}' hex_snes__jst.details.tsv)
-    E0_D=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $5; exit}' hex_snes__evenlap_m0.details.tsv)
-    E1_D=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $5; exit}' hex_snes__evenlap_m1.details.tsv)
+    NCELLS=$(detailField hex_snes__laplacian.details.tsv "$i" cells)
+    CELLS_PER_SIDE=$(detailField hex_snes__laplacian.details.tsv "$i" cellsPerSide)
 
-    RHIE_T=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $3; exit}' hex_snes__rhiechow.details.tsv)
-    LAP_T=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $3; exit}' hex_snes__laplacian.details.tsv)
-    JST_T=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $3; exit}' hex_snes__jst.details.tsv)
-    E0_T=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $3; exit}' hex_snes__evenlap_m0.details.tsv)
-    E1_T=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $3; exit}' hex_snes__evenlap_m1.details.tsv)
+    if [[ -z "${NCELLS}" ]]
+    then
+        NCELLS="NaN"
+    fi
 
-    RHIE_M=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $4; exit}' hex_snes__rhiechow.details.tsv)
-    LAP_M=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $4; exit}' hex_snes__laplacian.details.tsv)
-    JST_M=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $4; exit}' hex_snes__jst.details.tsv)
-    E0_M=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $4; exit}' hex_snes__evenlap_m0.details.tsv)
-    E1_M=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $4; exit}' hex_snes__evenlap_m1.details.tsv)
+    if [[ -z "${CELLS_PER_SIDE}" || "${CELLS_PER_SIDE}" == "NaN" ]]
+    then
+        CELLS_PER_SIDE=$(meshCellsPerSide "$i")
+    fi
 
-    echo -e "${NCELLS}\t${RHIE_D}\t${LAP_D}\t${JST_D}\t${E0_D}\t${E1_D}" >> tipDispVsCells.dat
-    echo -e "${NCELLS}\t${RHIE_T}\t${LAP_T}\t${JST_T}\t${E0_T}\t${E1_T}" >> clockTimeVsCells.dat
-    echo -e "${NCELLS}\t${RHIE_M}\t${LAP_M}\t${JST_M}\t${E0_M}\t${E1_M}" >> maxMemoryVsCells.dat
+    appendWideTableRow tipDispVsCells.dat "${NCELLS}" "${i}" dy
+    appendWideTableRow tipDispScaledVsCellsPerSide.dat "${CELLS_PER_SIDE}" "${i}" dyScaled
+    appendWideTableRow clockTimeVsCells.dat "${NCELLS}" "${i}" clockTime
+    appendWideTableRow executionTimeVsCells.dat "${NCELLS}" "${i}" executionTime
+    appendWideTableRow maxMemoryVsCells.dat "${NCELLS}" "${i}" mem
+    appendWideTableRow snesIterationsVsCells.dat "${NCELLS}" "${i}" snesIterations
+    appendWideTableRow avgLinearIterationsVsCells.dat "${NCELLS}" "${i}" avgLinearIterations
 done
 
 # Write a compact equivalence table for laplacian versus even-order m = 0
 LAP_VS_E0="laplacian_vs_evenlap_m0.tsv"
-echo -e "# Mesh\tCells\tLapTime\tEvenM0Time\tLapD\tEvenM0D\tTimeDiff\tDispDiff\tLapStatus\tEvenM0Status" > "${LAP_VS_E0}"
+echo -e "# Mesh\tCellsPerSide\tCells\tLapClockTime\tEvenM0ClockTime\tLapDyScaled\tEvenM0DyScaled\tLapSNESIterations\tEvenM0SNESIterations\tLapAvgLinearIterations\tEvenM0AvgLinearIterations\tClockTimeDiff\tDyScaledDiff\tSNESIterationDiff\tAvgLinearIterationDiff\tLapStatus\tEvenM0Status" > "${LAP_VS_E0}"
 
 for i in `seq $START_MESH $END_MESH`
 do
-    NCELLS=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $2; exit}' hex_snes__laplacian.details.tsv)
-    LAP_T=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $3; exit}' hex_snes__laplacian.details.tsv)
-    E0_T=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $3; exit}' hex_snes__evenlap_m0.details.tsv)
-    LAP_D=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $5; exit}' hex_snes__laplacian.details.tsv)
-    E0_D=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $5; exit}' hex_snes__evenlap_m0.details.tsv)
-    LAP_STATUS=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $6; exit}' hex_snes__laplacian.details.tsv)
-    E0_STATUS=$(awk -v mesh="$i" 'NR > 1 && $1 == mesh {print $6; exit}' hex_snes__evenlap_m0.details.tsv)
+    CELLS_PER_SIDE=$(detailField hex_snes__laplacian.details.tsv "$i" cellsPerSide)
+    NCELLS=$(detailField hex_snes__laplacian.details.tsv "$i" cells)
+    LAP_T=$(detailField hex_snes__laplacian.details.tsv "$i" clockTime)
+    E0_T=$(detailField hex_snes__evenlap_m0.details.tsv "$i" clockTime)
+    LAP_D=$(detailField hex_snes__laplacian.details.tsv "$i" dyScaled)
+    E0_D=$(detailField hex_snes__evenlap_m0.details.tsv "$i" dyScaled)
+    LAP_SN=$(detailField hex_snes__laplacian.details.tsv "$i" snesIterations)
+    E0_SN=$(detailField hex_snes__evenlap_m0.details.tsv "$i" snesIterations)
+    LAP_AVG=$(detailField hex_snes__laplacian.details.tsv "$i" avgLinearIterations)
+    E0_AVG=$(detailField hex_snes__evenlap_m0.details.tsv "$i" avgLinearIterations)
+    LAP_STATUS=$(detailField hex_snes__laplacian.details.tsv "$i" status)
+    E0_STATUS=$(detailField hex_snes__evenlap_m0.details.tsv "$i" status)
 
-    TIME_DIFF=$(awk -v a="$LAP_T" -v b="$E0_T" 'BEGIN {if (a == "" || b == "" || a == "NaN" || b == "NaN") print "NaN"; else printf "%.12g", b - a}')
-    DISP_DIFF=$(awk -v a="$LAP_D" -v b="$E0_D" 'BEGIN {if (a == "" || b == "" || a == "NaN" || b == "NaN") print "NaN"; else printf "%.12g", b - a}')
+    TIME_DIFF=$(numericDifference "${LAP_T}" "${E0_T}")
+    DISP_DIFF=$(numericDifference "${LAP_D}" "${E0_D}")
+    SNES_DIFF=$(numericDifference "${LAP_SN}" "${E0_SN}")
+    AVG_LINEAR_DIFF=$(numericDifference "${LAP_AVG}" "${E0_AVG}")
 
-    echo -e "${i}\t${NCELLS}\t${LAP_T}\t${E0_T}\t${LAP_D}\t${E0_D}\t${TIME_DIFF}\t${DISP_DIFF}\t${LAP_STATUS}\t${E0_STATUS}" >> "${LAP_VS_E0}"
+    echo -e "${i}\t${CELLS_PER_SIDE}\t${NCELLS}\t${LAP_T}\t${E0_T}\t${LAP_D}\t${E0_D}\t${LAP_SN}\t${E0_SN}\t${LAP_AVG}\t${E0_AVG}\t${TIME_DIFF}\t${DISP_DIFF}\t${SNES_DIFF}\t${AVG_LINEAR_DIFF}\t${LAP_STATUS}\t${E0_STATUS}" >> "${LAP_VS_E0}"
 done
 
-# Create plots if gnuplot in installed
+# Copy plotting inputs so the post-processing can be recreated from the run dir
+cp "${PLOT_DIR}"/*.gnuplot .
+cp "${BENCHMARK_FILE}" .
+cp "${MESH_SPACING_FILE}" .
+
+# Create plots if gnuplot is installed
 if command -v gnuplot &>/dev/null
 then
-    # Copy gnuplot scripts
-    cp ../plotScripts/* .
-
-    # Run all scripts
-    for f in *gnuplot
-    do
-        echo "Running gnuplot on $f"
-        gnuplot "$f"
-    done
+    if (gnuplot -e "set terminal dumb; set output '/dev/null'" &>/dev/null) 2>/dev/null
+    then
+        for f in *.gnuplot
+        do
+            echo "Running gnuplot on $f"
+            gnuplot "$f"
+        done
+    else
+        echo "Skipping gnuplot: installed binary is not runnable in this environment"
+    fi
 fi
 
 # Exit the run directory
-cd ..
+cd "${SCRIPT_DIR}" || exit 1
 
 echo; echo; echo "Done!"; echo
 echo "View the files in ${RUN_DIR}"

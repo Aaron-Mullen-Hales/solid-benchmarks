@@ -40,6 +40,7 @@ solidModel     linearGeometryTotalDisplacement;
         {
             type            generalisedEvenOrderLaplacian;
             scaleFactor     0.125;
+            scaleFactorJacobian 1.0;
             laplacianPower  1;
         }
     }
