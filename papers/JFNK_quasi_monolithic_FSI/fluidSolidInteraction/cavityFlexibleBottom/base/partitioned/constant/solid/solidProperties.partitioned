@@ -21,7 +21,7 @@ solidModel    nonLinearGeometryTotalLagrangianTotalDisplacement;
 nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
 {
     // Solution algorithm
-    solutionAlgorithm implicitSegregated;
+    solutionAlgorithm PETScSNES;
 
     // Predict displacement at the start of a time-step
     predictor yes;

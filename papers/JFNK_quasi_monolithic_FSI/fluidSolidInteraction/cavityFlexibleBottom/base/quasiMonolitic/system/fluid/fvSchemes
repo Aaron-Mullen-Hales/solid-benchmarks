@@ -24,7 +24,7 @@ d2dt2Schemes
 
 ddtSchemes
 {
-    default            steadyState;
+    default            backward;
     ddt(D)             steadyState;
     d2dt2(D)           steadyState;
 }

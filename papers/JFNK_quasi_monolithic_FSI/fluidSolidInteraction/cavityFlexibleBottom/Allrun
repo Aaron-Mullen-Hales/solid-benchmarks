@@ -6,15 +6,15 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/quasiMonolitic NAME=quasiMonolitic"
-    #"BASE=base/partitioned NAME=partitioned"
+    "BASE=base/quasiMonolitic NAME=quasiMonolitic DT=10"
+    "BASE=base/partitioned NAME=iqnils DT=10"
 )
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 4
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=4
+END_MESH=1
 
 
 # Detect the CPU type: we append this to the case name
@@ -109,8 +109,12 @@ do
         #DT=$(echo "scale=5; 10/(2^($i - 1))" | bc -l)
 
         # Update time-step
-        #echo "Setting deltaT = ${DT}"
-        #sed -i "/^\s*deltaT /s|^.*|deltaT ${DT};|"  system/controlDict
+        echo "Setting deltaT = ${DT}"
+        sed -i "/^\s*deltaT /s|^.*|deltaT ${DT};|"  system/controlDict
+
+        # Set IQNILS - add as option for partitioned schemes
+        #echo "Setting IQNILS scheme"
+        #sed -i "/^\s*fluidSolidInterface /s|^.*|fluidSolidInterface IQNILS;|"  constant/fsiProperties
 
         # Run the solver
         if [[ "$1" == "parallel" ]]; then
