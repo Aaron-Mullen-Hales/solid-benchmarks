@@ -12,7 +12,7 @@ set -u
 #   METHODS="monolithic:default partitioned:IQNILS"
 #   MESH_LEVELS="1 2 3 4"
 #   DT_VALUES="0.0625 0.125 0.25"
-#   END_TIME=20
+#   END_TIME=200
 
 STUDY="${1:-${STUDY:-mesh}}"
 if [[ -v END_TIME ]]
@@ -20,7 +20,7 @@ then
     USER_SET_END_TIME=true
 else
     USER_SET_END_TIME=false
-    END_TIME=20
+    END_TIME=200
 fi
 STEADY_MIN_TIME="${STEADY_MIN_TIME:-2}"
 STEADY_N_SAMPLES="${STEADY_N_SAMPLES:-10}"
