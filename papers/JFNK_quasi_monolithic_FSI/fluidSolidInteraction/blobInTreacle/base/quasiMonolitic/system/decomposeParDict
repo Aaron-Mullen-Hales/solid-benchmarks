@@ -16,10 +16,29 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Note: this decomposeParDict is not used but it must be present to keep
-// argList happy. Use instead the decomposeParDicts in system/fluid and
-// system/solid
+numberOfSubdomains 12;
 
-numberOfSubdomains 2;
+method scotch;
+
+monolithicCoeffs
+{
+    regions (fluid solid);
+
+    regionWeights
+    {
+        fluid 3; // nDofs in fluid cell
+        solid 2; // nDofs in solid cell
+    }
+
+    interfaces
+    (
+        {
+            regionA fluid;
+            patchA  cylinder;
+            regionB solid;
+            patchB  interface;
+        }
+    );
+}
 
 // ************************************************************************* //
