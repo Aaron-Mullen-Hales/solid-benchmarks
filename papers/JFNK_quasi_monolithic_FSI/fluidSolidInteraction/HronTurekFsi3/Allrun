@@ -16,11 +16,13 @@ set -u
 #   END_TIME=20
 #   FORCE_SCALE=1.0    # 1/0.015 to convert from 15 mm extruded slab to 2D N/m
 #   START_FRAC=0.5     # trailing-window fraction for last-period stats
+#   MESH_CORES=(2 8 12) # processor counts for mesh levels 1, 2, 3
 
 STUDY="${1:-${STUDY:-mesh}}"
 END_TIME="${END_TIME:-20}"
 FORCE_SCALE="${FORCE_SCALE:-1.0}"
 START_FRAC="${START_FRAC:-0.5}"
+MESH_CORES=(2 8 12)
 
 DEFAULT_METHODS="monolithic:default monolithic:schurTuned monolithic:physicsPC partitioned:IQNILS partitioned:Aitken"
 if [[ -n "${METHODS+x}" ]]
@@ -85,6 +87,42 @@ caseName()
     echo "${method}_${variant}.m${mesh}.dt${dt//./p}"
 }
 
+meshCores()
+{
+    local mesh="$1"
+    local index=$((mesh - 1))
+
+    if (( index < 0 || index >= ${#MESH_CORES[@]} ))
+    then
+        echo "No processor count configured for mesh level ${mesh}" >&2
+        return 1
+    fi
+
+    echo "${MESH_CORES[$index]}"
+}
+
+setNumberOfSubdomains()
+{
+    local dict="$1"
+    local cores="$2"
+
+    if [[ ! -f "$dict" ]]
+    then
+        echo "Cannot find $dict"
+        return 1
+    fi
+
+    if ! grep -q "^[[:space:]]*numberOfSubdomains[[:space:]]" "$dict"
+    then
+        echo "Cannot find numberOfSubdomains in $dict"
+        return 1
+    fi
+
+    sed -i \
+        "/^[[:space:]]*numberOfSubdomains[[:space:]]/s|^.*|numberOfSubdomains ${cores};|" \
+        "$dict"
+}
+
 activateMethod()
 {
     local method="$1"
@@ -121,19 +159,32 @@ activateMethod()
     fi
 }
 
-runSolver()
+runTimed()
 {
+    local logFile="$1"
+    shift
+
     if command -v gtime &> /dev/null
     then
         gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
-            solids4Foam &> log.solids4Foam
+            "$@" &> "$logFile"
     elif [ -x /usr/bin/time ]
     then
         /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
-            solids4Foam &> log.solids4Foam
+            "$@" &> "$logFile"
     else
-        solids4Foam &> log.solids4Foam
+        "$@" &> "$logFile"
     fi
+}
+
+runSolver()
+{
+    runTimed log.solids4Foam solids4Foam
+}
+
+runParallelSolver()
+{
+    solids4Foam::runParallel solids4Foam &> log.solids4Foam
 }
 
 verifyConformalInterface()
@@ -292,14 +343,56 @@ do
                     echo "Conformal-interface check failed; aborting case."
                     STATUS="failed"
                 else
-                    runSolver
-                    SOLVER_STATUS=$?
+                    CORES=$(meshCores "$mesh") || STATUS="failed"
 
-                    if [[ $SOLVER_STATUS -ne 0 ]]
+                    if [[ "$STATUS" != "failed" ]]
                     then
-                        STATUS="failed"
+                        SOLVER_STATUS=0
+
+                        if [[ "$CORES" -gt 1 ]]
+                        then
+                            if [[ "$METHOD" == "monolithic" ]]
+                            then
+                                setNumberOfSubdomains system/decomposeParDict "$CORES"
+                                decomposeParMonolithic &> log.decomposeParMonolithic || SOLVER_STATUS=$?
+                                if [[ $SOLVER_STATUS -eq 0 ]]
+                                then
+                                    runParallelSolver || SOLVER_STATUS=$?
+                                fi
+                            else
+                                setNumberOfSubdomains system/decomposeParDict "$CORES"
+                                setNumberOfSubdomains system/solid/decomposeParDict "$CORES"
+                                setNumberOfSubdomains system/fluid/decomposeParDict "$CORES"
+                                solids4Foam::runApplication -s fluid decomposePar -region fluid || SOLVER_STATUS=$?
+                                if [[ $SOLVER_STATUS -eq 0 ]]
+                                then
+                                    solids4Foam::runApplication -s solid decomposePar -region solid || SOLVER_STATUS=$?
+                                fi
+                                if [[ $SOLVER_STATUS -eq 0 ]]
+                                then
+                                    runParallelSolver || SOLVER_STATUS=$?
+                                fi
+                                if [[ $SOLVER_STATUS -eq 0 ]]
+                                then
+                                    solids4Foam::runApplication -s fluid reconstructPar -region fluid || SOLVER_STATUS=$?
+                                fi
+                                if [[ $SOLVER_STATUS -eq 0 ]]
+                                then
+                                    solids4Foam::runApplication -s solid reconstructPar -region solid || SOLVER_STATUS=$?
+                                fi
+                            fi
+                        else
+                            runSolver || SOLVER_STATUS=$?
+                        fi
+
+                        if [[ $SOLVER_STATUS -ne 0 ]]
+                        then
+                            STATUS="failed"
+                        else
+                            STATUS="ranToEnd"
+                        fi
                     else
-                        STATUS="ranToEnd"
+                        STATUS="failed"
                     fi
                 fi
             fi
