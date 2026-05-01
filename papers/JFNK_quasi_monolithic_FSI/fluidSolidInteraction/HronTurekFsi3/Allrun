@@ -23,7 +23,7 @@ FORCE_SCALE="${FORCE_SCALE:-1.0}"
 START_FRAC="${START_FRAC:-0.5}"
 
 DEFAULT_METHODS="monolithic:default monolithic:schurTuned monolithic:physicsPC partitioned:IQNILS partitioned:Aitken"
-if [[ -v METHODS ]]
+if [[ -n "${METHODS+x}" ]]
 then
     USER_SET_METHODS=true
 else
@@ -223,12 +223,17 @@ appendSummary()
 # Detect the CPU type: append this to the run directory name
 if [[ "$OSTYPE" == "darwin"* ]]
 then
-    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string 2>/dev/null | sed 's/[^a-zA-Z0-9]/_/g')
 elif [[ -f /proc/cpuinfo ]]
 then
     CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
 else
     CPU_TYPE="Unknown_CPU"
+fi
+
+if [[ -z "$CPU_TYPE" ]]
+then
+    CPU_TYPE="$(uname -m)"
 fi
 
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
