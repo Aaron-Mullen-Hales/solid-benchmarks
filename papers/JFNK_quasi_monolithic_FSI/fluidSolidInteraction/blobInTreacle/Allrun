@@ -11,7 +11,7 @@ set -u
 #
 # Environment overrides:
 #   METHODS="monolithic:default partitioned:IQNILS partitioned:Aitken"
-#   MESH_LEVELS="1"
+#   MESH_LEVELS="1 2 3 4 5"
 #   DT_VALUES="0.1 0.025 0.0125 0.00625"
 #   END_TIME=1
 #   WRITE_INTERVAL=0.1
@@ -30,17 +30,17 @@ fi
 
 case "$STUDY" in
     mesh)
-        MESH_LEVELS="${MESH_LEVELS:-1}"
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3 4 5}"
         DT_VALUES="${DT_VALUES:-0.00625}"
         END_TIME="${END_TIME:-1}"
         ;;
     time)
-        MESH_LEVELS="${MESH_LEVELS:-1}"
+        MESH_LEVELS="${MESH_LEVELS:-3}"
         DT_VALUES="${DT_VALUES:-0.1 0.025 0.0125 0.00625}"
         END_TIME="${END_TIME:-1}"
         ;;
     all)
-        MESH_LEVELS="${MESH_LEVELS:-1}"
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3 4 5}"
         DT_VALUES="${DT_VALUES:-0.1 0.025 0.0125 0.00625}"
         END_TIME="${END_TIME:-1}"
         ;;
@@ -229,8 +229,8 @@ do
             setControlEntry endTime "$END_TIME" system/controlDict
             setControlEntry writeInterval "$WRITE_INTERVAL" system/controlDict
 
-            solids4Foam::runApplication -s solid blockMesh -region solid
-            solids4Foam::runApplication -s fluid blockMesh -region fluid
+            solids4Foam::runApplication -s solid blockMesh -region solid -dict system/solid/blockMeshDict."$mesh"
+            solids4Foam::runApplication -s fluid blockMesh -region fluid -dict system/fluid/blockMeshDict."$mesh"
             solids4Foam::runApplication -s solid transformPoints -region solid -translate "(1.5 -0.5 0)"
             solids4Foam::runApplication -s fluid transformPoints -region fluid -translate "(1.5 -0.5 0)"
             solids4Foam::runApplication -s fluid checkMesh -region fluid
