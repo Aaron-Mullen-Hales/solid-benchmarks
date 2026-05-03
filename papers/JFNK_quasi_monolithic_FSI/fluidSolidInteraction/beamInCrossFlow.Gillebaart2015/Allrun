@@ -15,7 +15,7 @@ set -u
 #   END_TIME=4.0
 
 STUDY="${1:-${STUDY:-mesh}}"
-if [[ -v END_TIME ]]
+if [[ -n "${END_TIME+x}" ]]
 then
     USER_SET_END_TIME=true
 else
@@ -24,7 +24,7 @@ else
 fi
 
 DEFAULT_METHODS="monolithic:default partitioned:IQNILS partitioned:Aitken"
-if [[ -v METHODS ]]
+if [[ -n "${METHODS+x}" ]]
 then
     USER_SET_METHODS=true
 else
