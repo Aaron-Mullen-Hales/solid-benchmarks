@@ -21,7 +21,10 @@ export LD_LIBRARY_PATH=/home/philipc/OpenFOAM/philipc-v2512/platforms/linux64Gcc
 #export OMP_NUM_THREADS=10
 
 # Campaign controls can be overridden at submission time, e.g.
-#   sbatch --export=ALL,STUDY=time,METHODS="monolithic:default partitioned:IQNILS" run.slurm
+#   sbatch --export=ALL,STUDY=time,METHODS="monolithic:default partitioned:IQNILS",TOTAL_CORES=8 run.slurm
+#   sbatch --export=ALL,STUDY=all,MESH_CORES="2 2 4 4 8",TOTAL_CORES=8 run.slurm
+# The top-level Allrun uses TOTAL_CORES to cap concurrent cases and MESH_CORES
+# to choose how many MPI ranks each mesh level consumes.
 : "${STUDY:=smoke}"
 
 # Execute the run script

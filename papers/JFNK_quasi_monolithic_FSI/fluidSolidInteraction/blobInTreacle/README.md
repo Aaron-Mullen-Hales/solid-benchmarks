@@ -78,6 +78,20 @@ base/partitioned/
 The top-level `Allrun` copies these templates into timestamped campaign
 directories and records a `campaignSummary.tsv`.
 
+It can also launch multiple cases at once, subject to a total MPI-rank budget.
+The default mesh-to-core mapping is:
+
+```text
+mesh 1 -> 2 cores
+mesh 2 -> 4 cores
+mesh 3 -> 8 cores
+mesh 4 -> 12 cores
+mesh 5 -> 16 cores
+```
+
+Override the total budget with `TOTAL_CORES`, or replace the per-mesh mapping
+with `MESH_CORES=(...)` if you want a different distribution.
+
 Run a short monolithic/partitioned smoke test with:
 
 ```bash
@@ -125,7 +139,15 @@ Common overrides:
 ```bash
 METHODS="monolithic:default partitioned:IQNILS" END_TIME=1 ./Allrun time
 DT_VALUES="0.1 0.025 0.0125 0.00625" ./Allrun time
+TOTAL_CORES=8 ./Allrun smoke
+MESH_CORES=(2 2 4 4 8) TOTAL_CORES=8 ./Allrun all
 ```
+
+The script still runs the individual solids4Foam solver in parallel whenever
+the selected mesh level requests more than one core. For partitioned cases that
+means decomposing the fluid and solid regions before the solver and
+reconstructing afterwards; for monolithic cases it uses the monolithic
+decomposition path before calling `solids4Foam -parallel`.
 
 The monolithic template uses `NewtonQuasiMonolithic`, defined in
 `base/quasiMonolitic/constant/fsiProperties`:
