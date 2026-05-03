@@ -47,7 +47,8 @@ solvers
             snes_lag_preconditioner "-2";
 
             // Preconditioner - LU
-            pc_type bjacobi;
+            //pc_type bjacobi;
+            pc_type redundant;
             sub_pc_type lu;
 
             // Preconditioner - ILU
