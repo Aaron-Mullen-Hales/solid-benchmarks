@@ -12,56 +12,62 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      blockMeshDict;
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-scale 1;
+d2dt2Schemes
+{
+    default            none;
+    d2dt2(D)           steadyState;
+}
 
-vertices
-(
-//Level 0
-    (0.45 0 0)
-    (0.55 0 0)
-    (0.55 0 -0.2)
-    (0.45 0 -0.2)
-//Level 1
-    (0.45 0.2 0)
-    (0.55 0.2 0)
-    (0.55 0.2 -0.2)
-    (0.45 0.2 -0.2)
-);
+ddtSchemes
+{
+    default            none;
+    ddt(U)             backward;
+    ddt(dU)            backward;
+    ddt(p)             backward;
+    ddt(D)             steadyState;
+    d2dt2(D)           steadyState;
+}
 
-blocks
-(
-    hex (3 2 6 7 0 1 5 4) (4 8 8) simpleGrading (1 1 1)
-);
+gradSchemes
+{
+    default            leastSquares;
+    grad(D)            leastSquaresS4f;
+}
 
-edges
-(
-);
+divSchemes
+{
+    default            none;
+    jacobian-div(phi,U) Gauss upwind;
+    div(phi,U)         Gauss linearUpwind cellLimited leastSquares 1;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+    div((nuEff*dev(T(grad(U))))) Gauss linear;
+    div(U)             Gauss linear;
+}
 
-patches
-(
-    wall interface
-    (
-        (3 0 4 7)
-        (2 3 7 6)
-        (1 2 6 5)
-        (4 5 6 7)
-    )
-    symmetry symmetry
-    (
-        (0 1 5 4)
-    )
-    wall bottom
-    (
-        (0 3 2 1)
-    )
-);
+laplacianSchemes
+{
+    default Gauss linear corrected;
+}
 
-mergePatchPairs
-(
-);
+interpolationSchemes
+{
+    default            linear;
+    interpolate(U)     skewCorrected linear;
+}
+
+snGradSchemes
+{
+    default            corrected;
+}
+
+fluxRequired
+{
+    default            no;
+    p;
+}
 
 // ************************************************************************* //
