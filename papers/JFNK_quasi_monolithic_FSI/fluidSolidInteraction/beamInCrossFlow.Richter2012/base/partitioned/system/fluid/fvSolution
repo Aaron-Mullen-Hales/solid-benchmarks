@@ -73,31 +73,20 @@ PIMPLE
     nCorrectors         3;
     nNonOrthogonalCorrectors 1;
 
-    residualControls
+    residualControl
     {
         U
         {
-            tolerance    1e-6;
-            relTol       0.0;
+            relTol    1e-5;
+            tolerance 1e-5;
         }
+
         p
         {
-            tolerance    1e-5;
-            relTol       0.0;
+            relTol    1e-5;
+            tolerance 1e-5;
         }
     }
 }
-
-// relaxationFactors
-// {
-//     equations
-//     {
-//         U    0.7;
-//     }
-//     fields
-//     {
-//         p    0.3;
-//     }
-// }
 
 // ************************************************************************* //

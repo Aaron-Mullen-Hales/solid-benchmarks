@@ -20,8 +20,6 @@ solidModel    nonLinearGeometryTotalLagrangianVelocity;
 
 nonLinearGeometryTotalLagrangianVelocityCoeffs
 {
-    linearElasticFormulation no;
-
     // Damping used by the transient benchmark setup
     dampingCoeff [0 0 -1 0 0 0 0] 1e4;
 
@@ -30,13 +28,13 @@ nonLinearGeometryTotalLagrangianVelocityCoeffs
         momentum
         {
             type        diffStencilLaplacian;
-            scaleFactor 0.025;
+            scaleFactor 0.1;
         }
 
         pressure
         {
             type        diffStencilLaplacian;
-            scaleFactor 0.025;
+            scaleFactor 0.1;
         }
     }
 }
