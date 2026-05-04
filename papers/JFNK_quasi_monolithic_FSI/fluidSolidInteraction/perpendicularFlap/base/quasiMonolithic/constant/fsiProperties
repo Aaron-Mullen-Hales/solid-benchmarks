@@ -14,20 +14,22 @@ FoamFile
     class       dictionary;
     object      fsiProperties;
 }
-fluidSolidInterface IQNILS;
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-"fixedRelaxationCoeffs|AitkenCoeffs|IQNILSCoeffs"
+fluidSolidInterface NewtonQuasiMonolithic;
+
+NewtonQuasiMonolithicCoeffs
 {
-    solidPatch      interface;
-    fluidPatch      flap;
-    relaxationFactor 0.1;
-    outerCorrTolerance 0.001;
-    nOuterCorr      100;
-    additionalMeshCorrection yes;
-    incrementalResiduals no;
+    solidPatch interface;
+    fluidPatch flap;
+
     coupled         yes;
+
     interfaceTransferMethod directMap;
-    writeResidualsToFile yes;
+
+    passViscousStress yes;
+
+    fluidSystemScaleFactor 1e+08;
 }
 
 // ************************************************************************* //
