@@ -52,8 +52,7 @@ boundaryField
 
     down
     {
-        type            fixedValue; //symmetryPlane;
-        patchType       symmetryPlane;
+        type            fixedDisplacement;
         value           uniform (0 0 0);
     }
 

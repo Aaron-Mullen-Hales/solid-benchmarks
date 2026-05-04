@@ -52,7 +52,9 @@ boundaryField
 
     down
     {
-        type            symmetryPlane;
+        type            zeroGradient;
+        //type            fixedGradientCorrected;
+        //gradient        uniform 0;
     }
 
     frontAndBack

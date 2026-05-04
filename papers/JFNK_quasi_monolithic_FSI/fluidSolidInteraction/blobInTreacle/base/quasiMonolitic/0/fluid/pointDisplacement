@@ -42,13 +42,14 @@ boundaryField
 
     cylinder
     {
-        type           fixedValue;
+        type            fixedValue;
         value           uniform (0 0 0);
     }
 
     down
     {
-        type            symmetryPlane;
+        type            fixedValue;
+        value           uniform (0 0 0);
     }
 
     frontAndBack

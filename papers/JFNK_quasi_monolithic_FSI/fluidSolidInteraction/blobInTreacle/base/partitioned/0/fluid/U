@@ -79,7 +79,9 @@ boundaryField
 
     down
     {
-        type            symmetryPlane;
+        type              fixedValue;
+        // type              fixedValueCorrected;
+        value             uniform (0 0 0);
     }
 
     frontAndBack
