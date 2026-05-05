@@ -18,6 +18,7 @@ configs=(
     "BASE=base/hex.snes NAME=hex_snes__jst        SOLIDPROPS_TAG=jst        PETSC_FILE=petscOptions.split"
     "BASE=base/hex.snes NAME=hex_snes__evenlap_m0 SOLIDPROPS_TAG=evenlap_m0 PETSC_FILE=petscOptions.split"
     "BASE=base/hex.snes NAME=hex_snes__evenlap_m1 SOLIDPROPS_TAG=evenlap_m1 PETSC_FILE=petscOptions.split"
+    "BASE=base/hex.snes NAME=hex_snes__evenlap_m2 SOLIDPROPS_TAG=evenlap_m2 PETSC_FILE=petscOptions.split"
 )
 
 configTags=(rhiechow laplacian jst evenlap_m0 evenlap_m1)
@@ -25,7 +26,7 @@ configTags=(rhiechow laplacian jst evenlap_m0 evenlap_m1)
 # Define start and end mesh indices
 # Override on the command line, e.g. END_MESH=7 ./Allrun
 START_MESH=${START_MESH:-1}
-END_MESH=${END_MESH:-7}
+END_MESH=${END_MESH:-4}
 
 
 meshCellsPerSide()
