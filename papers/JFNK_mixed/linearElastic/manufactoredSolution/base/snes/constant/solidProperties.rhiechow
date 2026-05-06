@@ -4,7 +4,7 @@
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
-|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
+|              www.openfoam.com, and owner of the OPENFOAM(R) and OpenCFD(R)  |
 |              trade marks.                                                   |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -35,9 +35,9 @@ linearGeometryTotalDisplacementCoeffs
 
     preconditioner
     {
-	// The "simplifiedEquation" approach solves a simple Laplace equation,
-	// while the non-basic approach solves the full solid mechanics system
-	simplifiedEquation yes;
+        // The "simplifiedEquation" approach solves a simple Laplace equation,
+        // while the non-basic approach solves the full solid mechanics system
+        simplifiedEquation yes;
     }
     solvePressure true;
 
@@ -51,9 +51,9 @@ linearGeometryTotalDisplacementCoeffs
 
         pressure
         {
-            type                laplacian;
-            scaleFactor         0.125;
-            scaleFactorJacobian 0.75;
+            type                RhieChow;
+            scaleFactor         1.0;
+            scaleFactorJacobian 1.0;
         }
     }
 
