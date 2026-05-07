@@ -44,9 +44,9 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
         pressure
         {
-            type                RhieChow;
-            scaleFactor         0.5;
-            scaleFactorJacobian 0.5;
+            type                JamesonSchmidtTurkel;
+            scaleFactor         0.125;
+            scaleFactorJacobian 1.0;
         }
     }
 

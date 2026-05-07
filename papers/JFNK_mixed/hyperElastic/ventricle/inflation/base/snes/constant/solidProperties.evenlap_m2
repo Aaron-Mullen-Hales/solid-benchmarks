@@ -3,7 +3,7 @@
 | Version:     v2.0                                                           |
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
-|              producer and distributor of the OpenFOAM software via          |
+|              producer and distributor of the OPENFOAM software via          |
 |              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
 |              trade marks.                                                   |
 \*---------------------------------------------------------------------------*/
@@ -44,9 +44,10 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
         pressure
         {
-            type                RhieChow;
-            scaleFactor         0.5;
-            scaleFactorJacobian 0.5;
+            type                generalisedEvenOrderLaplacian;
+            scaleFactor         1.0;
+            scaleFactorJacobian 1.0;
+            laplacianPower      2;
         }
     }
 
