@@ -10,4 +10,10 @@ set grid
 set key left top
 set logscale x 2
 
-plot for [col=2:6] "tipDispVsCells.dat" using 1:col with linespoints lw 2 pt 7 title columnhead(col)
+plot \
+    "tipDispVsCells.dat" using 1:2 with linespoints lw 2 pt 7 title columnhead(2), \
+    "tipDispVsCells.dat" using 1:3 with linespoints lw 2 pt 7 title columnhead(3), \
+    "tipDispVsCells.dat" using 1:4 with linespoints lw 2 pt 7 title columnhead(4), \
+    "tipDispVsCells.dat" using 1:5 with linespoints lw 2 pt 7 title columnhead(5), \
+    "tipDispVsCells.dat" using 1:6 with linespoints lw 2 pt 7 title columnhead(6), \
+    "tipDispVsCells.dat" using 1:7 with linespoints lw 2 pt 7 title columnhead(7)
