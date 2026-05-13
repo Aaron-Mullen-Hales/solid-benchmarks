@@ -19,8 +19,8 @@ FoamFile
 
 d2dt2Schemes
 {
-    default                 backward;
-  //default                 steadyState;
+  //default                 backward;
+  default                 steadyState;
   //default                 Euler;
 }
 
