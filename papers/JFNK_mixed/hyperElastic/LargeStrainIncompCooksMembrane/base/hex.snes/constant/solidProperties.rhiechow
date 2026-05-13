@@ -29,8 +29,8 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
     //solutionAlgorithm explicit;
 
     // PETSc options file used by PETScSNES
-    //optionsFile petscOptions.split;
-    optionsFile petscOptions.hypre;
+    optionsFile petscOptions.split;
+    //optionsFile petscOptions.hypre;
     //optionsFile petscOptions.ilu;
     //optionsFile petscOptions.seg.hypre;
     //optionsFile petscOptions.physics;
@@ -43,7 +43,8 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
         // while the non-basic approach solves the full solid mechanics system
         simplifiedEquation yes;
     }
-    solvePressure false;
+    solvePressure true;
+
     stabilisation
     {
         momentum
@@ -54,9 +55,9 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
         pressure
         {
-            type                laplacian;
-            scaleFactor         0.125;
-            scaleFactorJacobian 0.125;
+            type                RhieChow;
+            scaleFactor         1000.0;
+            scaleFactorJacobian 1000.0;
         }
     }
 
