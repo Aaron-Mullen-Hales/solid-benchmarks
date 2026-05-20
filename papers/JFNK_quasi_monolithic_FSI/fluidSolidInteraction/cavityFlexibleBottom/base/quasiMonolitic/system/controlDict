@@ -81,10 +81,10 @@ functions
         forceComponent      1;
         minTime             20;
         nSamples            10;
-        nConsecutive        3;
-        displacementRelTol  1e-5;
+        nConsecutive        1;
+        displacementRelTol  1e-4;
         displacementAbsTol  1e-8;
-        forceRelTol         1e-5;
+        forceRelTol         1e-4;
         forceAbsTol         1e-7;
         displacementRefMin  1e-3;
         forceRefMin         1e-3;
