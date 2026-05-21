@@ -16,10 +16,31 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Keep this top-level processor count consistent with the region
-// decomposeParDicts because the parallel tutorial wrapper uses it to choose
-// the MPI size for the monolithic run.
+numberOfSubdomains 6;
 
-numberOfSubdomains 4;
+method          scotch;
+
+monolithicCoeffs
+{
+    regions (fluid solid);
+
+    // Optional per-region cell weights
+    // DOF-based: fluid has 4 DOFs/cell (p,Ux,Uy,Uz), solid has 3 (Dx,Dy,Dz)
+    regionWeights
+    {
+        fluid   3;
+        solid   2;
+    }
+
+    interfaces
+    (
+        {
+            regionA     fluid;
+            patchA      interface;
+            regionB     solid;
+            patchB      interface;
+        }
+    );
+}
 
 // ************************************************************************* //

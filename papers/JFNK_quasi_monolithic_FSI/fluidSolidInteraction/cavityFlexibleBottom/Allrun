@@ -18,7 +18,7 @@ set -u
 #   STEADY_N_SAMPLES=10
 #   STEADY_N_CONSECUTIVE=1
 #   TOTAL_CORES=24        # total MPI ranks available across all concurrent cases
-#   MESH_CORES=(1 1 1 1)  # processor counts for mesh levels 1..4
+#   MESH_CORES=(1 1 1 6)  # processor counts for mesh levels 1..4
 
 STUDY="${1:-${STUDY:-mesh}}"
 END_TIME="${END_TIME:-10000}"
@@ -29,7 +29,7 @@ STEADY_DISP_REL_TOL="${STEADY_DISP_REL_TOL:-1e-4}"
 STEADY_FORCE_REL_TOL="${STEADY_FORCE_REL_TOL:-1e-4}"
 
 TOTAL_CORES="${TOTAL_CORES:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}"
-MESH_CORES=(1 1 1 1)
+MESH_CORES=(1 1 1 6)
 
 if ! [[ "$TOTAL_CORES" =~ ^[0-9]+$ ]] || [[ "$TOTAL_CORES" -lt 1 ]]
 then
@@ -379,21 +379,29 @@ runCaseWorker()
                     then
                         setNumberOfSubdomains system/decomposeParDict "$cores" || solverStatus=$?
                     fi
-                    if [[ "$solverStatus" -eq 0 && -f system/solid/decomposeParDict ]]
+                    if [[ "$method" == "monolithic" ]]
                     then
-                        setNumberOfSubdomains system/solid/decomposeParDict "$cores" || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 && -f system/fluid/decomposeParDict ]]
-                    then
-                        setNumberOfSubdomains system/fluid/decomposeParDict "$cores" || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        solids4Foam::runApplication -s fluid decomposePar -region fluid || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        solids4Foam::runApplication -s solid decomposePar -region solid || solverStatus=$?
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            solids4Foam::runApplication decomposeParMonolithic || solverStatus=$?
+                        fi
+                    else
+                        if [[ "$solverStatus" -eq 0 && -f system/solid/decomposeParDict ]]
+                        then
+                            setNumberOfSubdomains system/solid/decomposeParDict "$cores" || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 && -f system/fluid/decomposeParDict ]]
+                        then
+                            setNumberOfSubdomains system/fluid/decomposeParDict "$cores" || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            solids4Foam::runApplication -s fluid decomposePar -region fluid || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            solids4Foam::runApplication -s solid decomposePar -region solid || solverStatus=$?
+                        fi
                     fi
                     if [[ "$solverStatus" -eq 0 ]]
                     then
