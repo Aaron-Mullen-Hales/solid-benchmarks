@@ -54,7 +54,7 @@ solvers
             fieldsplit_fluid_pc_type fieldsplit;
             fieldsplit_fluid_pc_fieldsplit_type schur;
             fieldsplit_fluid_pc_fieldsplit_schur_fact_type upper;
-            fieldsplit_fluid_pc_fieldsplit_schur_precondition a11;
+            fieldsplit_fluid_pc_fieldsplit_schur_precondition selfp;
             fieldsplit_fluid_pc_fieldsplit_block_size "3";
             fieldsplit_fluid_pc_fieldsplit_0_fields "0,1";
             fieldsplit_fluid_pc_fieldsplit_1_fields "2";
