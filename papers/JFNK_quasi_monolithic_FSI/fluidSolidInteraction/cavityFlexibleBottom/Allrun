@@ -37,7 +37,8 @@ then
     exit 1
 fi
 
-DEFAULT_METHODS="monolithic:default partitioned:IQNILS partitioned:Aitken"
+DEFAULT_METHODS="monolithic:default partitioned:IQNILS"
+#DEFAULT_METHODS="monolithic:default partitioned:IQNILS partitioned:Aitken"
 if [[ -v METHODS ]]
 then
     USER_SET_METHODS=true
