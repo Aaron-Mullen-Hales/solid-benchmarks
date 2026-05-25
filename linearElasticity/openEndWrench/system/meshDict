@@ -11,13 +11,28 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       uniformDimensionedVectorField;
-    location    "constant";
-    object      g;
+    class       dictionary;
+    location    "system";
+    object      meshDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+surfaceFile "wrench.fms";
 
-dimensions      [0 1 -2 0 0 0 0];
-value           ( 0 0 0 );
+maxCellSize 0.016;
+
+boundaryCellSize $maxCellSize;
+
+objectRefinements
+{
+    box
+    {
+        type box;
+        cellSize 0.005;
+        centre (3.55 -0.06 -0.006);
+        lengthX 1.8;
+        lengthY 0.05;
+        lengthZ 0.3;
+    }
+}
 
 // ************************************************************************* //

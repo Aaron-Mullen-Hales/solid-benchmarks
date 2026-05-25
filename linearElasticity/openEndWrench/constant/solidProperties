@@ -11,13 +11,31 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       uniformDimensionedVectorField;
+    class       dictionary;
     location    "constant";
-    object      g;
+    object      solidProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 1 -2 0 0 0 0];
-value           ( 0 0 0 );
+// linearGeometry: assumes small strains and rotations
+solidModel     linearGeometryTotalDisplacement;
+
+"linearGeometryTotalDisplacementCoeffs"
+{
+    // Maximum number of momentum correctors
+    nCorrectors     5000;
+
+    // Solution tolerance for displacement
+    solutionTolerance 1e-06;
+
+    // Alternative solution tolerance for displacement
+    alternativeTolerance 1e-06;
+
+    // Material law solution tolerance
+    materialTolerance 1e-05;
+
+    // Write frequency for the residuals
+    infoFrequency   1;
+}
 
 // ************************************************************************* //
