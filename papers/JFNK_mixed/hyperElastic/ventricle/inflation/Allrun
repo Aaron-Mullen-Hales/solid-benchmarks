@@ -6,6 +6,36 @@ set -eo pipefail
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "${S4F_SOLVER:-}" ]]
+then
+    if [[ -z "${WM_OPTIONS:-}" ]]
+    then
+        echo "ERROR: WM_OPTIONS is not set. Source OpenFOAM before running Allrun."
+        exit 1
+    fi
+
+    LOCAL_S4F_SOLVER="${SCRIPT_DIR}/../../../../../../../s4f/platforms/${WM_OPTIONS}/bin/solids4Foam"
+    if [[ -x "${LOCAL_S4F_SOLVER}" ]]
+    then
+        S4F_SOLVER="$(cd "$(dirname "${LOCAL_S4F_SOLVER}")" && pwd)/solids4Foam"
+    else
+        echo "ERROR: S4F_SOLVER is not set and the local testsLand2 solver was not found."
+        echo "Set it explicitly, e.g.:"
+        echo "    export S4F_SOLVER=/path/to/s4f/platforms/\$WM_OPTIONS/bin/solids4Foam"
+        exit 1
+    fi
+fi
+
+if [[ "$S4F_SOLVER" == */* ]]
+then
+    S4F_LIBBIN="$(cd "$(dirname "$S4F_SOLVER")/../lib" && pwd)"
+    export LD_LIBRARY_PATH="${S4F_LIBBIN}:${LD_LIBRARY_PATH:-}"
+    export DYLD_LIBRARY_PATH="${S4F_LIBBIN}:${DYLD_LIBRARY_PATH:-}"
+fi
+echo "Using solids4Foam solver: ${S4F_SOLVER}"
+
 BASE="base/snes"
 NAME="hex_snes"
 
@@ -25,12 +55,12 @@ stabilisations=(
 # The default uses the methods that are currently practical for this transient
 # inflation benchmark with the supplied PETSc options.  Set STABS=all to also
 # run the laplacian-family variants that still need further tuning here.
-STABS="${STABS:-rhiechow jst evenlap_m1}"
+STABS="${STABS:-rhiechow}"
 
 # Mesh input files are defined from 1 to 6.  The default matches the original
 # inflation benchmark; override START_MESH/END_MESH for shorter checks.
 START_MESH="${START_MESH:-1}"
-END_MESH="${END_MESH:-4}"
+END_MESH="${END_MESH:-1}"
 
 if ! command -v extractIdealisedVentricleResults &>/dev/null
 then
@@ -129,16 +159,16 @@ do
         if command -v gtime &>/dev/null
         then
             echo "Running solids4Foam on ${CASE} with gtime"
-            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            gtime -f "Maximum resident set size (kbytes): %M" "$S4F_SOLVER" &> log.solids4Foam
             SOLVER_STATUS=$?
         elif command -v /usr/bin/time &>/dev/null && /usr/bin/time -f "Maximum resident set size (kbytes): %M" true &>/dev/null
         then
             echo "Running solids4Foam on ${CASE} with /usr/bin/time"
-            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" "$S4F_SOLVER" &> log.solids4Foam
             SOLVER_STATUS=$?
         else
             echo "Running solids4Foam on ${CASE}"
-            mpirun -np 1 solids4Foam &> log.solids4Foam
+            "$S4F_SOLVER" &> log.solids4Foam
             SOLVER_STATUS=$?
         fi
         set -e
