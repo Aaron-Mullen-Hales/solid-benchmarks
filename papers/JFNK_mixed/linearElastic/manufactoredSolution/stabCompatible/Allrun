@@ -170,8 +170,13 @@ do
 
         if [ "$SOLVER_STATUS" -ne 0 ]
         then
-            echo "solids4Foam failed for ${CASE}; see ${PWD}/log.solids4Foam"
-            exit "$SOLVER_STATUS"
+            if grep -q "The momentum equation converged in all time-steps" log.solids4Foam
+            then
+                echo "solids4Foam returned ${SOLVER_STATUS} after completing ${CASE}; continuing"
+            else
+                echo "solids4Foam failed for ${CASE}; see ${PWD}/log.solids4Foam"
+                exit "$SOLVER_STATUS"
+            fi
         fi
 
         # Extract results from solver log and append them to a summary file

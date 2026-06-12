@@ -17,7 +17,6 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-//solidModel     linearGeometryTotalDisplacement;
 solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
 "linearGeometryTotalDisplacementCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
@@ -28,22 +27,29 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
     //solutionAlgorithm explicit;
 
     // PETSc options file used by PETScSNES
-    optionsFile petscOptions.hypre;
+    optionsFile petscOptions.split;
 
     // Predictor D at the start of a new time step using U and A
     predictor yes;
 
+    solvePressure true;
+
     stabilisation
     {
-        type        RhieChow;
-        //type        alpha;
-        scaleFactor 0.5;
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
+
+        pressure
+        {
+            type                RhieChow;
+            scaleFactor         0.5;
+            scaleFactorJacobian 0.5;
+        }
     }
-    solvePressure true;
-    pressureSmoothingCoeff 1.0;
-    stabilisationType oosterlee;
-    omega    omega [0 0 0 0 0 0 0] 0.125;
-    omegaTau    omegaTau [0 0 0 0 0 0 0] 0.0;
+
     mu          mu [1 -1 -2 0 0 0 0] 2.62507e+07;
     lambda      lambda [1 -1 -2 0 0 0 0] 5.24856e+07;
 }
