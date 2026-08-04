@@ -16,7 +16,7 @@ License
     along with solids4foam.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::analyticalSphericalCavityDisplacementFvPatchVectorField
+    analyticalSphericalCavityTractionFvPatchVectorField
 
 Description
     Traction boundary condition for a spherical cavity in an infinite elastic
@@ -25,20 +25,17 @@ Description
 
 Author
    Philip Cardiff, UCD.
-   Ivan Batistic, UCD.
 
 SourceFiles
-    analyticalSphericalCavityDisplacementFvPatchVectorField.C
-
-Author
-    Philip Cardiff, UCD. All rights reserved.
+    analyticalSphericalCavityTractionFvPatchVectorField.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef analyticalSphericalCavityDisplacementFvPatchVectorField_H
-#define analyticalSphericalCavityDisplacementFvPatchVectorField_H
+#ifndef analyticalSphericalCavityTractionFvPatchVectorField_H
+#define analyticalSphericalCavityTractionFvPatchVectorField_H
 
-#include "fixedDisplacementFvPatchVectorField.H"
+#include "fvPatchFields.H"
+#include "solidTractionFvPatchVectorField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -46,13 +43,15 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                 Class analyticalSphericalCavityDisplacementFvPatch Declaration
+             Class analyticalSphericalCavityTractionFvPatchVectorField Declaration
 \*---------------------------------------------------------------------------*/
 
-class analyticalSphericalCavityDisplacementFvPatchVectorField
+class analyticalSphericalCavityTractionFvPatchVectorField
 :
-    public fixedDisplacementFvPatchVectorField
+    public solidTractionFvPatchVectorField
 {
+private:
+
     // Private Data
 
         //- Far field traction
@@ -65,50 +64,44 @@ class analyticalSphericalCavityDisplacementFvPatchVectorField
         //- Poisson's ration
         const scalar nu_;
 
-        //- Young modulus
-        const scalar E_;
-
-        //- A copy of the constructor dict
-        const dictionary dict_;
-
 
 public:
 
     //- Runtime type information
-    TypeName("analyticalSphericalCavityDisplacement");
+    TypeName("analyticalSphericalCavityTraction");
 
 
     // Constructors
 
         //- Construct from patch and internal field
-        analyticalSphericalCavityDisplacementFvPatchVectorField
+        analyticalSphericalCavityTractionFvPatchVectorField
         (
             const fvPatch&,
             const DimensionedField<vector, volMesh>&
         );
 
         //- Construct from patch, internal field and dictionary
-        analyticalSphericalCavityDisplacementFvPatchVectorField
+        analyticalSphericalCavityTractionFvPatchVectorField
         (
             const fvPatch&,
             const DimensionedField<vector, volMesh>&,
             const dictionary&
         );
 
-        //- Construct by mapping given analyticalSphericalCavityDisplacementFvPatchVectorField
-        //  onto a new patch
-        analyticalSphericalCavityDisplacementFvPatchVectorField
+        //- Construct by mapping given
+        //  analyticalSphericalCavityTractionFvPatchVectorField onto a new patch
+        analyticalSphericalCavityTractionFvPatchVectorField
         (
-            const analyticalSphericalCavityDisplacementFvPatchVectorField&,
+            const analyticalSphericalCavityTractionFvPatchVectorField&,
             const fvPatch&,
             const DimensionedField<vector, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Construct as copy
-        analyticalSphericalCavityDisplacementFvPatchVectorField
+        analyticalSphericalCavityTractionFvPatchVectorField
         (
-            const analyticalSphericalCavityDisplacementFvPatchVectorField&
+            const analyticalSphericalCavityTractionFvPatchVectorField&
 #ifdef OPENFOAM_ORG
         ) = delete;
 #else
@@ -119,15 +112,15 @@ public:
         {
             return tmp<fvPatchVectorField>
             (
-                new analyticalSphericalCavityDisplacementFvPatchVectorField(*this)
+                new analyticalSphericalCavityTractionFvPatchVectorField(*this)
             );
         }
 #endif
 
         //- Construct as copy setting internal field reference
-        analyticalSphericalCavityDisplacementFvPatchVectorField
+        analyticalSphericalCavityTractionFvPatchVectorField
         (
-            const analyticalSphericalCavityDisplacementFvPatchVectorField&,
+            const analyticalSphericalCavityTractionFvPatchVectorField&,
             const DimensionedField<vector, volMesh>&
         );
 
@@ -139,26 +132,37 @@ public:
         {
             return tmp<fvPatchVectorField>
             (
-                new analyticalSphericalCavityDisplacementFvPatchVectorField(*this, iF)
+                new analyticalSphericalCavityTractionFvPatchVectorField(*this, iF)
             );
         }
 
 
-
     // Member functions
 
+        // Mapping functions
 
-        // Evaluation functions
-
-            //- Update the coefficients associated with the patch field
-            virtual void updateCoeffs();
-
-            //- Return face quadrature values.
-            // Used for high order solvers, input is position of points
-            virtual autoPtr<CompactListList<vector>> evaluateQuadrature
+            //- Map (and resize as needed) from self given a mapping object
+            virtual void autoMap
             (
-                const CompactListList<point>& faceQuadPoints
-            ) const;
+                const fvPatchFieldMapper&
+            );
+
+            //- Reverse map the given fvPatchField onto this fvPatchField
+            virtual void rmap
+            (
+                const fvPatchVectorField&,
+                const labelList&
+            );
+
+
+        //- Update the coefficients associated with the patch field
+        virtual void updateCoeffs();
+
+#ifndef FOAMEXTEND
+        //- Return face quadrature values, used for high order solvers
+        virtual autoPtr<CompactListList<vector>>
+           evaluateQuadrature() const;
+#endif
 
         //- Write
         virtual void write(Ostream&) const;
