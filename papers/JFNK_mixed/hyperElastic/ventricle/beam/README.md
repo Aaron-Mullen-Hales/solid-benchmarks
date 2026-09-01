@@ -17,7 +17,8 @@ mesh, and runs solids4foam. The base case is never run in place.
 - PETSc/SNES support for the mixed pressure-displacement solution.
 - An MPI launcher is needed only when explicitly requesting a one-rank MPI
   launch with `USE_MPI=true`.
-- Gnuplot is needed only to create the convergence plot.
+- Python 3 and ReportLab are needed to create the convergence plot
+  automatically. A gnuplot version of the plot is also available.
 
 There are no local-machine paths or operating-system-specific library names in
 the case.
@@ -95,6 +96,8 @@ For each selected level, it:
 3. Runs `blockMesh` and solids4foam.
 4. Reads the final tip displacement written by the `pointDisp` function object
    and appends it to `runs/beam.summary.txt`.
+5. Runs `plotScripts/render_land_problem1_plots.py` and writes the convergence
+   figure under `plots/`.
 
 Uniform `0/f0` and `0/f0f` fields aligned with the beam axis are included in
 the base. This keeps the case mesh-independent and avoids a separate fibre
@@ -120,18 +123,23 @@ rather than the intermediate `0.1`, `0.2`, ... states.
 
 ## Plotting
 
-After running two or more mesh levels, invoke the adapted plot script from the
-`problem1` directory:
+`Allrun` invokes the Python plot script automatically after all requested mesh
+levels have completed. It reads `runs/beam.summary.txt` and creates
+`plots/land_problem1_m3_verticalDisplacement_vs_cellSize.pdf`.
+
+To use the gnuplot renderer instead, or to disable plotting, use:
 
 ```bash
-gnuplot plotScripts/dz.gnuplot
+PLOTTER=gnuplot ./Allrun 3
+PLOTTER=none ./Allrun 3
 ```
 
-It reads `runs/beam.summary.txt` and creates
-`land_problem1_dz_convergence.pdf`. Column 4 of the summary is the z-displacement
-in metres. The benchmark quantity is the final z-coordinate of the monitored
-tip, whose initial coordinate is 0.001 m, so the plot uses
-`1000 * (Dz + 0.001)` and includes the 4.18 mm reference result.
+Set `PLOT_PYTHON` if the ReportLab-enabled interpreter is not named `python3`.
+Both plotting scripts may also be invoked directly from this directory. Column
+4 of the summary is the z-displacement in metres. The benchmark quantity is the
+final z-coordinate of the monitored tip, whose initial coordinate is 0.001 m,
+so the plot uses `1 + 1000 * Dz` in millimetres and includes the 4.2 mm
+reference result.
 
 ## Layout
 

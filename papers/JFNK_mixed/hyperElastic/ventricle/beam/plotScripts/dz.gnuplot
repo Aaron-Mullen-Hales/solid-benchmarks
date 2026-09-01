@@ -1,5 +1,7 @@
 # Land problem 1: Even-Laplacian m=3 deformed tip-coordinate convergence.
-# Run from the problem1 directory with: gnuplot plotScripts/dz.gnuplot
+# Run from the beam case directory with: gnuplot plotScripts/dz.gnuplot
+
+system "mkdir -p plots"
 
 set terminal pdfcairo enhanced color size 7.5,4.8 font "Helvetica,10"
 set output "plots/land_problem1_m3_verticalDisplacement_vs_cellSize.pdf"
@@ -10,9 +12,9 @@ unset title
 set border lw 1.2
 set grid back dt 2 lw 0.50 lc rgb "#d9d9d9"
 set logscale x
-set xrange [0.028:0.58]
+set xrange [0.012:1.1]
 set yrange [0.8:4.5]
-set xtics ("0.03125" 0.03125, "0.0625" 0.0625, "0.125" 0.125, "0.25" 0.25, "0.5" 0.5)
+set xtics ("0.0139" 0.0138888889, "0.03125" 0.03125, "0.0625" 0.0625, "0.125" 0.125, "0.25" 0.25, "0.5" 0.5, "1" 1.0)
 set format y "%g"
 set tics nomirror out scale 0.75
 set xtics font "Helvetica,16"
@@ -35,4 +37,4 @@ set style line 99 lc rgb "#111111" dt 2 lw 2.2
 
 plot \
     referenceZmm with lines ls 99 title "Land et al. ≈ 4.2 mm", \
-    "beam.summary.txt" every ::1 using 2:(initialTipZmm + 1e3*$4) with linespoints ls 1 title "Even Laplacian, m=3"
+    "runs/beam.summary.txt" using 2:(initialTipZmm + 1e3*$4) with linespoints ls 1 title "Even Laplacian, m=3"

@@ -45,12 +45,17 @@ def read_summary(spec: SeriesSpec) -> list[tuple[float, float]]:
 
 def log_bounds(values: list[float]) -> tuple[float, float]:
     lo, hi = min(values), max(values)
+    if lo == hi:
+        return lo / math.sqrt(2.0), hi * math.sqrt(2.0)
     factor = (hi / lo) ** 0.035
     return lo / factor, hi * factor
 
 
 def linear_bounds(values: list[float]) -> tuple[float, float]:
     lo, hi = min(values), max(values)
+    if lo == hi:
+        pad = max(abs(lo) * 0.08, 0.1)
+        return lo - pad, hi + pad
     pad = (hi - lo) * 0.08
     return lo - pad, hi + pad
 
@@ -268,13 +273,16 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    data_dir = args.data_dir
-    output_dir = args.output_dir or data_dir / "plots"
+    case_dir = args.data_dir
+    output_dir = args.output_dir or case_dir / "plots"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    m1_path = args.m1_summary or data_dir / "comparison_data" / "evenlap_m1_beam.summary.txt"
-    m2_path = args.m2_summary or data_dir / "comparison_data" / "evenlap_m2_beam.summary.txt"
-    m3_path = data_dir / "beam.summary.txt"
+    m1_path = args.m1_summary or case_dir / "comparison_data" / "evenlap_m1_beam.summary.txt"
+    m2_path = args.m2_summary or case_dir / "comparison_data" / "evenlap_m2_beam.summary.txt"
+    m3_path = case_dir / "runs" / "beam.summary.txt"
+
+    if not m3_path.is_file():
+        raise SystemExit(f"Result summary not found: {m3_path}")
 
     m1 = SeriesSpec(m1_path, "Even Laplacian, m=1", colors.HexColor("#D7AAAA"), False)
     m2 = SeriesSpec(m2_path, "Even Laplacian, m=2", colors.HexColor("#B85C4B"), False)
@@ -288,9 +296,12 @@ def main() -> None:
         ylabel="Deformed tip coordinate, z_tip [mm]",
         reference_label="Land et al. ≈ 4.2 mm",
     )
-    render(combined_output, [m1, m2, m3])
     print(f"Wrote {m3_output}")
-    print(f"Wrote {combined_output}")
+    if m1_path.is_file() and m2_path.is_file():
+        render(combined_output, [m1, m2, m3])
+        print(f"Wrote {combined_output}")
+    else:
+        print("Comparison summaries were not found; wrote the m=3 plot only.")
 
 
 if __name__ == "__main__":

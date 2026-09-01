@@ -11,13 +11,21 @@ BASE="base/snes"
 MESH_LEVELS="${MESH_LEVELS:-1}"
 MAX_MESH_LEVEL=7
 
+# Plot once every requested mesh level has finished. Prefer the active Conda
+# interpreter when one is exported because its executable may not be first on
+# PATH in an OpenFOAM shell.
+PLOTTER="${PLOTTER:-python}"
+PLOT_PYTHON="${PLOT_PYTHON:-${CONDA_PYTHON_EXE:-python3}}"
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 case "${1:-}" in
     -h|--help)
         echo "Usage: ./Allrun [number-of-mesh-levels]"
         echo "       MESH_LEVELS=\"1 3 5\" ./Allrun"
+        echo "       PLOTTER=gnuplot ./Allrun 3"
         echo "Available mesh levels: 1-${MAX_MESH_LEVEL}"
+        echo "PLOTTER selects the final plot script: python, gnuplot or none."
         exit 0
         ;;
     "")
@@ -126,3 +134,41 @@ echo
 echo "Completed mesh level(s): $MESH_LEVELS"
 echo "Results are under $ROOT/runs."
 echo "Tip-displacement summary: $summary"
+
+# Both scripts use paths relative to the case root. Changing directory here
+# makes plotting independent of the directory from which Allrun was invoked.
+PYTHON_PLOT="$ROOT/plotScripts/render_land_problem1_plots.py"
+GNUPLOT_PLOT="$ROOT/plotScripts/dz.gnuplot"
+
+cd "$ROOT"
+
+case "$PLOTTER" in
+    gnuplot)
+        if ! command -v gnuplot >/dev/null 2>&1; then
+            echo "gnuplot not found: skipping the figure." >&2
+        elif [[ ! -f "$GNUPLOT_PLOT" ]]; then
+            echo "Plot script not found: $GNUPLOT_PLOT" >&2
+        else
+            echo
+            echo "Plotting with plotScripts/$(basename "$GNUPLOT_PLOT")"
+            gnuplot "$GNUPLOT_PLOT"
+        fi
+        ;;
+    python)
+        if ! command -v "$PLOT_PYTHON" >/dev/null 2>&1; then
+            echo "$PLOT_PYTHON not found: skipping the figure." >&2
+        elif [[ ! -f "$PYTHON_PLOT" ]]; then
+            echo "Plot script not found: $PYTHON_PLOT" >&2
+        else
+            echo
+            echo "Plotting with plotScripts/$(basename "$PYTHON_PLOT")"
+            "$PLOT_PYTHON" "$PYTHON_PLOT"
+        fi
+        ;;
+    none)
+        ;;
+    *)
+        echo "Unknown PLOTTER '$PLOTTER'; expected python, gnuplot or none." >&2
+        exit 2
+        ;;
+esac
