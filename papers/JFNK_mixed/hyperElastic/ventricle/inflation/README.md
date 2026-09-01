@@ -16,6 +16,9 @@ and runs solids4foam. The base case is never run in place.
 - PETSc/SNES support for the mixed pressure-displacement solution.
 - An MPI launcher is optional. If `mpirun` is available, the solver is
   launched as a one-rank MPI job; otherwise it is launched directly.
+- Python 3 with ReportLab for the default final plot. Set `PLOTTER=gnuplot`
+  to use the supplied gnuplot script instead, or `PLOTTER=none` to skip plots.
+  If needed, `PLOT_PYTHON` can select a Python interpreter that has ReportLab.
 
 No local OpenFOAM installation path is hard-coded in the case.
 
@@ -95,6 +98,13 @@ For every selected level, `Allrun`:
 2. Activates `blockMeshDict.N` and `extrudeMeshDict.N`.
 3. Runs `blockMesh`, `extrudeMesh`, and `createPatch -overwrite`.
 4. Runs solids4foam in serial, using one MPI rank when `mpirun` is available.
+5. Runs `extractIdealisedVentricleResults` inside the completed case, producing
+   `runs/meshN/midLineDeformed.txt`.
+
+After all selected levels finish, `Allrun` returns to this `inflation`
+directory and runs the Python plot script. If the extraction utility is not
+already installed in the configured OpenFOAM environment, `Allrun` builds the
+copy in `extractIdealisedVentricleResults/` with `wmake` first.
 
 OpenFOAM utility logs and `log.solids4Foam` are written inside each
 `runs/meshN` case.
@@ -128,24 +138,33 @@ and fields are written every 0.1 time units.
 
 ## Plotting
 
-The mesh-comparison script from the original Problem 2 inflation benchmark is
-stored as `plotScripts/midline.gnuplot`. It has been adapted to compare
-`runs/mesh1` through `runs/mesh4` in the current directory layout. Once the
-four midline files exist, run it from the `problem2` directory with:
+The default Python plotter discovers every available
+`runs/mesh*/midLineDeformed.txt`, so it works for the default one-level run as
+well as a multi-level study. `Allrun` calls it automatically. It can also be
+run manually from this directory with:
+
+```bash
+python3 plotScripts/render_land_problem2_m3_combined.py
+```
+
+This writes `land_problem2_m3_combined.pdf` here. All paths are derived from
+the location of the script, so the repository can be moved or cloned to a
+different local directory without editing paths.
+
+The original gnuplot plotter remains available. To select it from `Allrun`:
+
+```bash
+PLOTTER=gnuplot ./Allrun 3
+```
+
+Or invoke it manually from this directory:
 
 ```bash
 gnuplot plotScripts/midline.gnuplot
 ```
 
 It creates `midline.pdf`, `midline_apex.pdf`, and
-`midline_inflection.pdf`, showing the four mesh levels together.
-
-The minimal `Allrun` intentionally does not compile or call a result-extraction
-utility. The comparison script expects
-`runs/mesh1/midLineDeformed.txt` through
-`runs/mesh4/midLineDeformed.txt`. The stabilisation plots likewise expect
-their corresponding summary files. Generate or provide those inputs before
-invoking the relevant gnuplot script.
+`midline_inflection.pdf`.
 
 ## Directory layout
 
@@ -154,6 +173,7 @@ problem2/
 |-- Allrun
 |-- Allclean
 |-- README.md
+|-- extractIdealisedVentricleResults/
 |-- base/
 |   `-- snes/
 |       |-- 0/
