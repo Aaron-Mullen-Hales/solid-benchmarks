@@ -17,8 +17,12 @@
 # Increase the number of allowed function evaluations
 -snes_max_funcs 100000000
 
-# Calculate the Jacobian using matrix-free finite differencing
--snes_mf
+# Use the hand-coded Jacobian as the preconditioner, but keep the Newton
+# operator matrix-free. The nonLinearGeometryTotalLagrangianTotalDisplacement
+# assembled Jacobian is an approximate preconditioning matrix for this finite
+# strain mixed formulation, not a complete Newton tangent; disabling
+# -snes_mf_operator makes the ventricle case diverge.
+#-snes_mf
 -snes_mf_operator
 
 # Linear solver
