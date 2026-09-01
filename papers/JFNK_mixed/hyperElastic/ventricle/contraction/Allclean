@@ -7,4 +7,4 @@ if [[ -d "$ROOT/runs" ]]; then
     rm -rf "$ROOT/runs"
 fi
 
-echo "Removed generated mesh-study cases. Template, plot scripts and reference data were preserved."
+echo "Removed generated mesh-study cases. Template and plot scripts were preserved."
