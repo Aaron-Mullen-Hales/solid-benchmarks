@@ -4,7 +4,7 @@
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
-|              www.openfoam.com, and owner of the OPENFOAM(R) and OpenCFD(R)  |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
 |              trade marks.                                                   |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -12,38 +12,49 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    location    "system";
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
-
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+d2dt2Schemes
 {
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
+    default                 steadyState;
+}
 
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.split;
-    solvePressure true;
+ddtSchemes
+{
+    default                 steadyState;
+}
 
-    stabilisation
-    {
-        momentum
-        {
-            type        diffStencilLaplacian;
-            scaleFactor 0.1;
-        }
+gradSchemes
+{
+    //default                extendedLeastSquares 0;
+    default                leastSquaresS4f;
+}
 
-        pressure
-        {
-            type            generalisedEvenOrderLaplacian;
-            scaleFactor     10.0;
-            scaleFactorJacobian 10.0;
-            laplacianPower  0;
-        }
-    }
+divSchemes
+{
+    default                 none;
+    div(sigma)              Gauss linear;
+    div((impK*grad(D)))     Gauss linear;
+}
+
+laplacianSchemes
+{
+    default                 Gauss linear corrected;
+    //default                 Gauss linear skewCorrected;
+}
+
+snGradSchemes
+{
+    default                 corrected;
+    //default                 skewCorrected;
+}
+
+interpolationSchemes
+{
+    default                 linear;
 }
 
 // ************************************************************************* //

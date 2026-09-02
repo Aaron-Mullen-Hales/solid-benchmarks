@@ -33,7 +33,7 @@ solidModel     linearGeometryTotalDisplacement;
         momentum
         {
             type        diffStencilLaplacian;
-            scaleFactor 0.1;
+            scaleFactor 1.0;
         }
 
         pressure

@@ -4,46 +4,49 @@
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
-|              www.openfoam.com, and owner of the OPENFOAM(R) and OpenCFD(R)  |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
 |              trade marks.                                                   |
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    class       volVectorField;
+    location    "0";
+    object      D;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+dimensions      [0 1 0 0 0 0 0];
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+internalField   uniform (0 0 0);
+
+boundaryField
 {
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
-
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.split;
-    solvePressure true;
-
-    stabilisation
+    left
     {
-        momentum
-        {
-            type        diffStencilLaplacian;
-            scaleFactor 0.1;
-        }
-
-        pressure
-        {
-            type            generalisedEvenOrderLaplacian;
-            scaleFactor     10.0;
-            scaleFactorJacobian 10.0;
-            laplacianPower  0;
-        }
+        type            fixedDisplacement;
+        value           uniform (0 0 0);
+    }
+    right
+    {
+        type            solidTraction;
+        traction        uniform ( 0 6.25e3 0 );
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    topAndBottom
+    {
+        type            solidTraction;
+        traction        uniform ( 0 0 0 );
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    frontAndBack
+    {
+        type            empty;
     }
 }
+
 
 // ************************************************************************* //

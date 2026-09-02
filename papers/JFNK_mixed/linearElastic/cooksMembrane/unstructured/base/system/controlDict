@@ -4,7 +4,7 @@
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
-|              www.openfoam.com, and owner of the OPENFOAM(R) and OpenCFD(R)  |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
 |              trade marks.                                                   |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -12,38 +12,53 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+application     solids4Foam;
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         1;
+
+deltaT          1;
+
+writeControl    timeStep;
+
+writeInterval   1;
+
+cycleWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression uncompressed;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable no;
+
+functions
 {
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
-
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.split;
-    solvePressure true;
-
-    stabilisation
-    {
-        momentum
-        {
-            type        diffStencilLaplacian;
-            scaleFactor 0.1;
-        }
-
-        pressure
-        {
-            type            generalisedEvenOrderLaplacian;
-            scaleFactor     10.0;
-            scaleFactorJacobian 10.0;
-            laplacianPower  0;
-        }
-    }
+   pointDisp
+   {
+       type    solidPointDisplacement;
+       point   (48.0 60.0 0);
+   }
+   
+   // pointDisp
+   // {
+   //     type    solidPointDisplacement;
+   //     point   (0.048 0.060 0);
+   //}
 }
 
 // ************************************************************************* //
