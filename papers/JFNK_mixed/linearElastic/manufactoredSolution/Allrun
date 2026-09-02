@@ -72,7 +72,7 @@ do
     echo "USE_GMSH is $USE_GMSH"
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
+    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf D_meanL1 S_meanL1" > "${SUMMARY}"
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
     do
@@ -182,20 +182,28 @@ do
         # Record the time
         CLOCK_TIME=$(grep -a "ClockTime" log.solids4Foam | awk '{print $7}')
 
-        # Extract the L2 (average) error for displacement
+        # The manufactured-solution function object prints three norms on one
+        # line, in this order:
+        #
+        #   Displacement error norms: mean L1, mean L2, LInf:
+        #   Magnitude:   <mean L1>      <mean L2>      <LInf>
+        #                    $2             $3             $4
+        #
+        # Columns 4 and 5 of the summary file are the two series plotted by
+        # plotScripts/dispErrors.gnuplot as "L_2" and "L_inf". They are taken
+        # from $3 and $4, i.e. the mean L2 and the true LInf, matching the axis
+        # labels. The mean L1 ($2) is recorded in the trailing columns; the
+        # published figures plotted $2 and $3 (mean L1 and mean L2) instead.
         DISP_L2_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-
-        # Extract the LInfinity (max) error for displacement
         DISP_LINF_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        DISP_MEAN_L1=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
 
-        # Extract the L2 (average) error for mag(sigma)
         STRESS_L2_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-
-        # Extract the LInfinity (max) error for mag(sigma)
         STRESS_LINF_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        STRESS_MEAN_L1=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
 
         # Write data to file
-        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${SUMMARY}"
+        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR $DISP_MEAN_L1 $STRESS_MEAN_L1" >> ../"${SUMMARY}"
 
         cd ..
     done
